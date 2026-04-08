@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Explores the BoardEffect (Diligent One Platform) website using Playwright MCP and generates manual test cases in CSV format.
 tools:
   - playwright

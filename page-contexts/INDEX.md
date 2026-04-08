@@ -5,6 +5,7 @@
 | Context File | Module | Sub-Module | Explored On | Roles Explored | Status |
 |---|---|---|---|---|---|
 | home.context.md | Home | Home Dashboard | 2026-04-08 | System Admin (MODERNIZED_SYSTEM_ADMIN_USEREMAIL) | Complete — other roles pending |
+| home-navigation.context.md | Navigation | Side Navigation (new-style) | 2026-04-08 | System Admin (MODERNIZED_SYSTEM_ADMIN_USEREMAIL) | Complete for SA — BM14 Library restriction noted; other roles pending. Tests generated: BEW-T10535–T10538, T10541 |
 
 ---
 
