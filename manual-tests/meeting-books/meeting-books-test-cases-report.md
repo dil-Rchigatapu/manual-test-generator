@@ -11,7 +11,7 @@
 
 | Metric | Value |
 |---|---|
-| Total Test Cases | 1 |
+| Total Test Cases | 2 |
 | Submodules Covered | AI Feature Integration |
 | Priority | High |
 | Status | Draft |
@@ -26,8 +26,11 @@
 | Key | Name | Type | Priority | Folder |
 |---|---|---|---|---|
 | BEW-T7131 | [E2E] Rebuild Book Only and Handle Outdated AI Content State for Smart Summary and Smart Prep | E2E | High | /BE-Modernisation/Frontend/Meeting Books/AI-Feature-Integration |
+| BEW-T7132 | [E2E] Publish Smart Summary and Smart Prep with Book Visibility Gate Verification | E2E | High | /BE-Modernisation/Frontend/Meeting Books/AI-Feature-Integration |
 
-**File:** `manual-tests/meeting-books/ai-feature/BEW-T7131-rebuild-book-ai-outdated-state.csv`
+**Files:**
+- `manual-tests/meeting-books/ai-feature/BEW-T7131-rebuild-book-ai-outdated-state.csv`
+- `manual-tests/meeting-books/ai-feature/BEW-T7132-publish-smart-summary-smart-prep.csv`
 
 ---
 
@@ -60,31 +63,57 @@
     - Smart Summary: status "Not visible" + "Review & publish" button
     - Smart Prep: status "Not visible" + "Review & publish" button
     - "Regenerate AI content" button in footer
-16. Click "Review & publish" for Smart Summary → verify sub-view opens
+16. Click "Review & publish" for Smart Summary → verify sub-view opens (Publish ENABLED since book is visible)
 17. Go back → Click "Review & publish" for Smart Prep → verify sub-view opens
 18. Close GovernAI panel
 
+---
+
+### BEW-T7132
+
+**Flow Summary — Publish Smart Summary & Smart Prep (Visibility Gate):**
+1. Login as System Admin
+2. Navigate to Book details page (book 30818 — built, AI generated, book NOT visible)
+3. Verify "Visible to workroom" is unchecked
+4. Open GovernAI panel → verify both rows show "Not visible" + "Review & publish" + "Regenerate AI content" in footer
+5. Click "Review & publish" for Smart Summary → **verify Publish is DISABLED** + alert "You can only publish the Smart Summary after you make the book visible."
+6. Go back → Close GovernAI panel
+7. Enable "Visible to workroom" → verify success toast "Book is set to 'Visible'"
+8. Reopen GovernAI → verify both rows are **still "Not visible"** (visibility change does NOT auto-publish)
+9. Click "Review & publish" for Smart Summary → **verify Publish is ENABLED** (no alert)
+10. Click Publish → verify `alert "Smart Summary published"` + `"Published on: {date}"` + footer shows "Unpublish"
+11. Go back → verify **mixed state**: Smart Summary "Visible"/"Review & unpublish", Smart Prep "Not visible"/"Review & publish", "Regenerate AI content" still visible
+12. Click "Review & publish" for Smart Prep → verify Publish ENABLED
+13. Click Publish → verify `alert "Smart Prep published"` + `"Published on: {date}"` + footer shows "Unpublish"
+14. Go back → verify **fully published state**: both "Visible"/"Review & unpublish", no outdated note, footer "Close" ONLY (Regenerate disappears)
+15. Close GovernAI panel
+
+**Key Behaviors Verified Live:**
+- Making book visible does NOT auto-publish AI rows (they stay "Not visible" until explicitly published)
+- Visibility gate: Publish [disabled] + alert when book not visible; Publish enabled (no alert) when visible
+- After publishing each item: `alert "{item} published"` + `"Published on: {date}"` appears; footer "Publish" → "Unpublish"
+- Mixed state (one published, one not): published shows "Visible"/"Review & unpublish"; unpublished shows "Not visible"/"Review & publish"
+- Fully published state: outdated note disappears; "Regenerate AI content" footer button disappears; only "Close" remains
+
 **Key Locators Verified:**
-- `data-testid="library-button-governai"` — GovernAI button
-- `role=dialog [active]` — GovernAI panel
-- `role=button name="Generate AI content"` — Initial AI generation
-- `role=button name="Review & publish"` — Per-item publish flow
-- `role=button name="Build book"` — Triggers rebuild when book already built
-- `role=dialog name="Building your book"` → `heading "Rebuild book"` — Rebuild confirmation
-- `role=button name="Rebuild book only"` — Rebuild without AI regeneration
-- `role=note` with "AI content is outdated." — Outdated warning in GovernAI panel
-- `role=button name="Regenerate AI content"` — Footer regeneration button
-- `role=heading level=2 name="Smart Summary - {Book Title}"` — Smart Summary sub-view
+- `role=button name="GovernAI"` — GovernAI button
+- `role=button name="Review & publish"` — Per-item publish entry point
+- `role=button name="Publish"` (enabled) / `role=button name="Publish" [disabled]` — Gated by visibility
+- `role=alert` "You can only publish the Smart Summary after you make the book visible." — Visibility gate alert
+- `role=alert` "Smart Summary published" / "Smart Prep published" — Post-publish confirmation alert
+- `role=button name="Unpublish"` — Replaces Publish after item is published
+- `role=button name="Review & unpublish"` — Replaces "Review & publish" in main panel after publishing
+- `generic "Visible"` — AI row status after publishing (replaces "Not visible")
 
 ---
 
 ## Notes
 
-- The rebuild modal (`dialog "Building your book"` with heading "Rebuild book") only appears on the **second and subsequent builds**. First-time builds go directly to the progress state.
-- After "Rebuild book only", the AI content state becomes "outdated" (not deleted). The previously generated content is retained but flagged.
-- Making the book "Visible to workroom" is required before Smart Summary and Smart Prep can be published. If the book is not visible, the Publish button is disabled and an alert is shown.
-- The "AI content is outdated" toast on Book details is transient — may auto-dismiss quickly. The persistent indicator is inside the GovernAI panel.
-- The `data-testid="library-button-governai"` locator is the most reliable locator for the GovernAI button.
+- First-time builds go **directly to success** (no progressbar). The progress state ("Processing... XX%") only appears during re-build flows.
+- After "Rebuild book only", AI content is retained but flagged as **outdated** ("AI content is outdated." note in GovernAI panel). This note disappears only after both Smart Summary and Smart Prep are published.
+- Making the book "Visible to workroom" is required before Smart Summary and Smart Prep can be published. If the book is not visible, Publish is disabled with an explanatory alert.
+- The "Regenerate AI content" footer button in the GovernAI panel **disappears** once both Smart Summary and Smart Prep are in "Visible" (published) state.
+- The `data-testid="library-button-governai"` attribute exists on the GovernAI button, but `role=button name="GovernAI"` is the preferred stable selector.
 
 ---
 
