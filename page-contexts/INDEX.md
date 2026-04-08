@@ -6,6 +6,7 @@
 |---|---|---|---|---|---|
 | home.context.md | Home | Home Dashboard | 2026-04-08 | System Admin (MODERNIZED_SYSTEM_ADMIN_USEREMAIL) | Complete — other roles pending |
 | home-navigation.context.md | Navigation | Side Navigation (new-style) | 2026-04-08 | System Admin (MODERNIZED_SYSTEM_ADMIN_USEREMAIL) | Complete for SA — BM14 Library restriction noted; other roles pending. Tests generated: BEW-T10535–T10538, T10541 |
+| meeting-books-ai-feature.context.md | Meeting Books | AI Feature Integration | 2026-04-08 | System Admin (MODERNIZED_SYSTEM_ADMIN_USEREMAIL) | Complete — Books list, Create Book, Book Builder, Book Details, GovernAI all states, Smart Summary/Prep sub-views, Rebuild Modal, Build Progress/Success. Test generated: BEW-T7131 |
 
 ---
 
