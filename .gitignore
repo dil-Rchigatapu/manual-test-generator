@@ -1,0 +1,23 @@
+# Credentials — never commit
+.env.dev
+.env
+.env.*
+!.env.example
+
+# Playwright MCP cache
+.playwright-mcp/
+bad_cases/
+# Node
+node_modules/
+
+# Screenshots captured during exploration
+screenshots/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code (keep mcp.json since it's project config, not personal settings)
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
