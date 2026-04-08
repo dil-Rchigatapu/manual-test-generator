@@ -99,7 +99,7 @@ Appears when clicking **"Edit book"** on a **Published** book.
 | Heading | `role=heading level=2 name="Edit and unpublish"` |
 | Body text | "Are you sure you want to edit and unpublish this meeting book? It won't be available to attendees until it's republished." |
 | Cancel button | `role=button name="Cancel"` |
-| Confirm (edit) button | `data-testid="confirmation-button-confirm"` / `role=button name="Edit and unpublish"` |
+| Confirm (edit) button | `role=button name="Edit and unpublish"` |
 | Close (X) button | `role=button name="Close"` |
 
 ---
@@ -178,7 +178,7 @@ Same container, post-completion state.
 | Edit book button | `role=button name="Edit book"` |
 | More options button | `role=button name="More options"` |
 | Book view tabs | `tablist "Book view tabs"` → Meeting book (selected), Event |
-| GovernAI button | `data-testid="library-button-governai"` / `role=button name="GovernAI"` |
+| GovernAI button | `role=button name="GovernAI"` |
 | Take minutes link | `role=link name="Take minutes"` → `/extensions/minutes?book_id={id}&committee_id={workroom_id}` |
 | View book button | `role=button name="View book"` |
 | More button | `role=button name="More"` |
@@ -274,7 +274,7 @@ Follows the same structure as Smart Summary sub-view.
 
 ## Notes
 
-- GovernAI button uses `data-testid="library-button-governai"` — use this as primary locator.
+- GovernAI button: use `role=button name="GovernAI"` as the primary locator.
 - The GovernAI panel `dialog [active]` is a right-side sidesheet that overlaps the page.
 - For AI to be publishable, the book must first be made **Visible to workroom** (checkbox on book details and book builder pages).
 - **First-time build skips progress:** When building a book for the first time, the build dialog (`role=dialog name="Building your book"`) transitions IMMEDIATELY to success state ("Book built") — no progressbar or "Processing... XX%" is shown. The progress/loading state only appears during REBUILD flows.
