@@ -55,11 +55,13 @@ Test Workroom: `UI_WORKROOM_NAME` = `UI Workroom`, ID = `5732`
 
 ---
 
-## Step 1 — Check Existing Context
+## Step 1 — Check Existing Context + Change Detection
 
 Before exploring, check if `page-contexts/INDEX.md` already has an entry for this page:
-- If a `.context.md` already exists for this page → ask the user if they want to re-explore or skip.
-- If not → proceed to Step 2.
+- If a `.context.md` does **not** exist → proceed to Step 2. This is a first-time exploration.
+- If a `.context.md` **already exists** → ask the user: "Context already exists for this page. Re-explore and detect changes? (yes / skip)"
+  - If **skip** → stop.
+  - If **yes** → load the existing context file into memory as the **baseline** before navigating. After capturing the new context, run **Change Detection** (see Step 4j below) and include a `## Changes Detected` section in the saved file.
 
 ---
 
@@ -75,58 +77,175 @@ Before exploring, check if `page-contexts/INDEX.md` already has an entry for thi
 
 ---
 
-## Step 3 — Navigate to the Target Page
+## Step 3 — Navigate to the Target Page (with Wait Protocol)
 
 1. Follow the navigation path the user described, or locate the module in the left sidebar / top navigation.
 2. At each navigation step, take note of the exact label of the element you clicked.
 3. Record the full URL once on the target page.
 4. Take a screenshot → save as `screenshots/<context-file-name>.png`.
 
+### Page Ready Protocol — MANDATORY before capturing any elements
+
+After every navigation, page load, or action that changes the page state, verify the page is fully ready before snapshotting:
+
+```
+WAIT PROTOCOL (execute in order):
+  1. Wait for network idle — no pending XHR/fetch requests
+  2. Wait for main content container to be visible
+     (role=main, or the primary content region of the page)
+  3. Wait for loaders to disappear:
+     - Any element with role=progressbar
+     - Any visible text matching "Loading...", "Please wait"
+     - Skeleton placeholder elements
+  4. Timeout fallback: if still loading after 10s → retry navigation once
+     If still loading after second attempt → document as "Page did not fully load"
+       and capture whatever IS visible
+
+ASSERT PAGE READY:
+  ✅ At least 3 interactive elements are visible in the snapshot
+  ✅ No "Loading..." or placeholder text present
+  ✅ URL matches the expected target path
+  → If any assertion fails, wait 2s and re-snapshot once before proceeding
+```
+
+> Apply this protocol before Step 4, before every role switch in Step 8, and before capturing any state transition snapshot in Step 6.
+
 ---
 
-## Step 4 — Capture Page Details (System Admin view)
+## Step 4 — Build the Semantic Context Layer
 
-On the target page, document EVERYTHING systematically.
+> **DO NOT dump the raw accessibility tree.** Transform what you see into a structured, testable model. Every section below is a layer of that model. The goal is: generator reads context → knows exactly what tests to write, with zero ambiguity.
 
 > **LOCATOR CAPTURE RULE (critical):**
-> For every UI element you document, inspect the DOM (use browser DevTools or Playwright's `evaluate` if needed) and record the best available locator in this priority order:
-> 1. `data-testid` attribute (most stable)
-> 2. `aria-label` or `aria-labelledby` attribute
-> 3. `role` + visible text (e.g., `role=button, name="Create Book"`)
-> 4. Visible label text + element type (e.g., `button with text "Create Book"`)
-> 5. CSS class or `id` (only as last resort — note it may be unstable)
->
-> Record locators in the format: `[locator: <type>=<value>]` next to each element.
-> Example: `'Create Book' button [locator: data-testid="create-book-btn"]`
-> Example: `'Email' input field [locator: aria-label="Email"]`
-> Example: `'Status' dropdown [locator: role=combobox, name="Status"]`
+> For every UI element, record the best available locator in this priority order:
+> 1. `data-testid` attribute
+> 2. `aria-label` or `aria-labelledby`
+> 3. `role` + accessible name (e.g., `role=button name="Create Book"`)
+> 4. Visible text + element type (last resort)
 
 ### 4a. Layout
 Describe the overall page structure: header, sidebar, main content, panels, tabs, modals.
 
-### 4b. Buttons
-For each button: exact label text, location on page, enabled/disabled state by default, and locator.
+### 4b. Interactive Elements — Grouped by Context
 
-### 4c. Forms & Input Fields
-For each field: label text, field type (text, textarea, date, file upload, checkbox, radio), required status, placeholder text, validation rules visible, and locator.
+Do NOT list buttons in a flat list. Group them by their containing region (form, toolbar, modal, footer):
+
+```
+## Interactive Elements
+
+### <Region Name> (e.g., "Page Toolbar", "Create Book Form", "Row Actions")
+- Button: "<label>"
+  locator: role=button name="<label>"
+  enabled when: <condition or "always">
+  disabled when: <condition or "never">
+  action: <what happens on click>
+
+- Link: "<label>"
+  locator: role=link name="<label>"
+  action: <navigation target or behavior>
+```
+
+### 4c. Forms — Structured with Validation Rules
+
+For each form or form-like region, output the full structured model including validation rules. This is what makes test generation deterministic:
+
+```
+## Forms
+
+### <Form Name> (e.g., "Create Book Form", "Upload Sidesheet")
+Trigger: <what opens this form>
+Submit button: locator: role=button name="<Submit Label>"
+Cancel button: locator: role=button name="<Cancel Label>"
+
+Fields:
+
+  Field: <Label>
+    locator: <best locator>
+    type: text | textarea | email | url | number | date | file | checkbox | radio | select
+    required: true | false
+    placeholder: "<placeholder text if any>"
+    validation rules:
+      - valid examples:   <e.g., user@example.com, any non-empty string>
+      - invalid examples: <e.g., missing @, empty string, >255 chars>
+      - error message:    "<exact text shown on validation failure>"
+    notes: <any extra behavior — e.g., auto-fills, depends on another field>
+```
+
+> If the page has no forms, write `## Forms — None`.
 
 ### 4d. Dropdowns & Selects
-For each: label text, all visible options, default selected value, and locator.
+For each: label text, all visible options, default selected value, locator.
 
 ### 4e. Tables & Lists
-For each table: column headers, sort indicators, filter controls, pagination details, row action menus, and the locator for the table container and each action.
+For each table: column headers, sort indicators, filter controls, pagination, row action menus, and locators.
 
 ### 4f. Modals & Sidesheets
-For each: what triggers it, its title, all content/fields inside with their locators, footer button labels with locators.
+For each: trigger, title, all content/fields with locators, footer buttons with locators, close behavior.
 
 ### 4g. Tabs / Secondary Navigation
-List all tabs/nav items with their labels, what content they show, and their locators.
+All tab labels, what content each shows, their locators.
 
 ### 4h. Empty States
-If applicable, trigger or observe empty states (no data) — document the message text, any CTA button text and its locator.
+Trigger or observe empty states — exact message text, any CTA button and its locator.
 
 ### 4i. Toast / Notification Messages
-For each success or error toast the page can show: the exact message text, the element locator (e.g., `role=alert`), and what action triggers it.
+Every success or error toast: exact message text, `role=alert` locator, and triggering action.
+
+### 4j. Error States — Controlled Capture
+
+> **RULE:** Explorer captures error *patterns*, not all combinations. Generator expands them into test cases.
+> Only trigger errors that are safe to test without permanent data changes.
+
+For each form and interactive element where validation applies, capture:
+
+```
+## Error States
+
+### <Form or Feature Name>
+
+  Trigger: Submit empty form
+  Result:  <which fields show errors, exact error messages>
+  Example:
+    Field: "Title" → error: "Title is required"
+    Field: "File"  → error: "Please upload a file"
+
+  Trigger: <invalid format input>
+  Field: "Email" → input: "userexample.com" → error: "Enter a valid email address"
+
+  Trigger: Upload unsupported file type
+  Field: "File Upload" → error: "<exact error message>"
+
+  Trigger: Submit when feature gate not met (e.g., publish when book not visible)
+  Result:  "<exact alert/error text>", button state: disabled
+```
+
+If you cannot safely trigger an error state in the browser, write: `"[Not triggered — infer from field type]"`
+
+### 4k. Change Detection (Re-exploration only)
+
+> Only run this section if an existing `.context.md` was loaded as a baseline in Step 1.
+
+Compare the baseline context with what you observed now. Output:
+
+```
+## Changes Detected
+(Re-exploration on: YYYY-MM-DD | Baseline from: YYYY-MM-DD)
+
+ADDED:
+  - Button: "Archive" in Page Toolbar
+    locator: role=button name="Archive"
+
+REMOVED:
+  - Button: "Delete" from Row Actions — no longer present
+
+CHANGED:
+  - Field: "Title" — was optional, now required
+  - Toast: "Book created" → now reads "Book successfully created"
+
+UNCHANGED: <list sections confirmed identical, or "All other sections unchanged">
+```
+
+If this is a first-time exploration, write: `## Changes Detected — N/A (first exploration)`
 
 ---
 
@@ -225,19 +344,39 @@ If bugs are found, ALSO save a `bugs/<context-filename>-bugs.md` file with the s
 
 ---
 
-## Step 8 — Capture Role Differences
+## Step 8 — Capture Role Differences (Visibility Diff Format)
 
 For each additional role the user asked you to check:
 1. Log out (click the user avatar/profile → `Sign out` or equivalent).
 2. Log in as that role.
-3. Navigate to the same page using the same path.
-4. **Compare with System Admin view** — document only what is DIFFERENT:
-   - Buttons missing or added?
-   - Actions disabled?
-   - Page inaccessible (redirected/403)?
-   - Different content shown?
-   - Different flows available?
+3. Apply the **Page Ready Protocol** from Step 3.
+4. Navigate to the same page using the same path.
 5. Take a screenshot → save as `screenshots/<context-file-name>-<role>.png`.
+6. **Compare against the System Admin baseline — document ONLY what is DIFFERENT** using this diff format:
+
+```
+## Visibility Diff — <Role Name> (e.g., Board Member 7 — No library access)
+Role env var: MODERNIZED_BOARD_MEMBER_7_USEREMAIL
+
+REMOVED (present for SA, absent for this role):
+  - Button: "Create Book"
+  - Tab: "Settings"
+
+DISABLED (visible but non-interactive for this role):
+  - Button: "Edit" → appears grayed out, role=button name="Edit" [disabled]
+
+ADDED (not present for SA, present for this role):
+  - Button: "Request Access"
+    locator: role=button name="Request Access"
+
+ACCESS DENIED (page-level):
+  - Redirected to: <URL> with message: "<exact text>"
+  - OR: Page loads but shows: "<access denied message>"
+
+UNCHANGED: <list what is the same, or "All other elements match SA baseline">
+```
+
+> If the page is completely inaccessible (redirect / 403 / blank), write only the ACCESS DENIED block and stop diffing — do not attempt to capture elements.
 
 ---
 
@@ -258,13 +397,43 @@ Save the file as: `page-contexts/<module>-<submodule>.context.md`
 
 Use the exact structure defined in `page-contexts/_SCHEMA.md`. Fill EVERY section — do not leave sections blank.
 
-**Required additional sections (new):**
+**Required sections (all must be present):**
+- `## Interactive Elements` — grouped by region (Step 4b)
+- `## Forms` — with full validation rules per field (Step 4c)
+- `## Error States` — controlled capture of validation patterns (Step 4j)
 - `## User Flows` — all flows mapped in Step 5
 - `## State Transition Maps` — all state machines mapped in Step 6
 - `## Bugs Found During Exploration` — from Step 7 (write "None found" if clean)
+- `## Changes Detected` — diff vs baseline (Step 4k), or "N/A (first exploration)"
+- `## Visibility Diffs` — one diff block per additional role checked (Step 8)
+- `## Coverage Confidence` — assessed in Step 10a below
+
+### Step 10a — Coverage Confidence Score
+
+Before saving, self-assess the quality of this exploration and add this section to the context file:
+
+```
+## Coverage Confidence
+Explored on: YYYY-MM-DD
+
+| Dimension                  | Score      | Notes                                      |
+|----------------------------|------------|--------------------------------------------|
+| UI elements captured       | x% (High/Partial/Low) | e.g., "All visible elements captured"  |
+| Forms + validation rules   | x% (High/Partial/Low) | e.g., "2 of 3 forms have full rules"   |
+| Flows documented           | x flows    | e.g., "3 flows: Create, Edit, Delete"  |
+| State transitions mapped   | x states   | e.g., "4 states mapped, 1 unreachable" |
+| Error states captured      | x% (High/Partial/Low) | e.g., "Triggered 4 of 6 errors"        |
+| Role coverage              | Partial    | e.g., "SA + BM7 only — 15 roles pending" |
+| Dynamic/loaded content     | Covered/Partial/Unknown | e.g., "Pagination not tested"  |
+
+Overall: High | Partial | Low
+Re-explore recommended: Yes | No | Only for [specific area]
+```
+
+The Planner Agent reads this score to decide whether re-exploration is needed before generating tests.
 
 Then update `page-contexts/INDEX.md`:
-- Add a new row to the table with the file name, module, sub-module, today's date, roles explored, and status `Complete`.
+- Add a new row with: file name, module, sub-module, today's date, roles explored, confidence level, status `Complete`.
 
 ---
 
