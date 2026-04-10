@@ -22,13 +22,15 @@ The system is self-improving: every exploration, generation, and critique run up
 | **Active bug hunting** | The Bug Detector agent probes every interactive element, monitors for console errors, and audits accessibility. Outputs a structured bug report and updates the risk map |
 | **Persistent memory** | Three memory files track coverage metrics, risk scores, known bugs, and generation history across all sessions. Every agent reads and updates memory |
 | **Jira ATM-compatible CSV output** | 22-column format, step-per-row, with locators in the Test Data column — ready to import directly into Jira ATM |
+| **Pipeline orchestrator** | One instruction runs the full pipeline: Planner → Explorer → (Bug Detector) → Generator → Critic → Generator (refine). Strict phase gates, auto-looping, max-2-refine cap, and a final summary report — no manual hand-offs between steps |
 
 ---
 
-## The Five Agents
+## The Agents
 
 | Agent | File | Browser? | Job |
 |---|---|---|---|
+| **Orchestrator** | `agents/orchestrator.prompt.md` | Yes (delegates) | **Start here.** Runs the full pipeline autonomously. Adopts each agent's identity in sequence. Strict phase gates, auto-looping Critic → Generator, max 2 refine passes, final summary report |
 | **00 — Planner** | `agents/00-planner.prompt.md` | No | Reads memory + coverage state → scores every module by risk → outputs a prioritized backlog of what to explore and test next |
 | **01 — Explorer** | `agents/01-explorer.prompt.md` | Yes | Navigates to a page → builds semantic context layer (grouped elements, validation rules, error patterns, flow maps, state transitions) → detects changes vs. previous exploration → role-diffs with structured REMOVED/DISABLED/ADDED format → saves `.context.md` with a coverage confidence score |
 | **02 — Generator** | `agents/02-test-generator.prompt.md` | No | Reads context files → applies a strategy mode (Smoke/Regression/Security/Accessibility/Negative/Full) → runs heuristic engine against element types → writes Jira ATM-compatible CSV test cases |
@@ -102,7 +104,29 @@ The `.vscode/mcp.json` file is already set up. VS Code will automatically regist
 
 To use **headed mode** (watch the browser), open `.vscode/mcp.json` and remove `"--headless"` from the args.
 
-### 2 — Run the Planner (always start here each sprint)
+### 2 — Run the Full Pipeline (recommended)
+
+```
+#agents/orchestrator.prompt.md
+
+Run pipeline for: Login
+Mode: Full
+Roles: System Admin and Board Member 7
+Start key: BEW-T7200
+Bug scan: Yes
+```
+
+The Orchestrator takes it from there — Planner → Explorer → Bug Detector → Generator → Critic → Generator (refine). It prints a live pipeline state block before each phase and a final summary when done. No further instructions needed from you.
+
+> **Minimal run** (just the module name, all defaults):
+> ```
+> #agents/orchestrator.prompt.md
+> Run pipeline for: Login
+> ```
+
+### 3 — Or Run Individual Agents Manually
+
+### Run the Planner only (always start here each sprint)
 
 ```
 #agents/00-planner.prompt.md
@@ -112,7 +136,7 @@ What should I work on next?
 
 The Planner reads `memory/`, `page-contexts/INDEX.md`, and `manual-tests/` → scores every module by risk → outputs a red/amber/green prioritized backlog.
 
-### 3 — Explore a Page
+### Explore a Page
 
 ```
 #agents/01-explorer.prompt.md
@@ -128,9 +152,9 @@ Explore the Meeting Books > Create Book flow. Check SA and WA roles.
 
 The Explorer logs in, applies the wait protocol, builds the semantic context layer, maps all flows + state transitions, performs role diffs, and assigns a coverage confidence score. Saves `page-contexts/<page>.context.md`.
 
-> **Re-exploration:** Run the same instruction again on an already-explored page. The Explorer loads the baseline and outputs a `## Changes Detected` section — useful for regression planning after a UI release.
+> **Re-exploration:** Run the same instruction on an already-explored page. The Explorer loads the baseline and outputs a `## Changes Detected` section — useful for regression planning after a UI release.
 
-### 4 — (Optional) Probe for Bugs
+### Probe for Bugs
 
 ```
 #agents/04-bug-detector.prompt.md
@@ -138,9 +162,9 @@ The Explorer logs in, applies the wait protocol, builds the semantic context lay
 Probe the GovernAI panel on book 30818 for bugs.
 ```
 
-Outputs `bugs/<page>-bugs.md` and updates `memory/risk-map.json`. The Planner will factor discovered bugs into risk scoring on the next run.
+Outputs `bugs/<page>-bugs.md` and updates `memory/risk-map.json`. The Planner factors discovered bugs into risk scoring on the next run.
 
-### 5 — Generate Test Cases
+### Generate Test Cases
 
 ```
 #agents/02-test-generator.prompt.md
@@ -269,6 +293,7 @@ manual-test-agent/
 ├── .vscode/
 │   └── mcp.json                          # Playwright MCP server config
 ├── agents/
+│   ├── orchestrator.prompt.md            # Orchestrator — runs the full pipeline end-to-end
 │   ├── 00-planner.prompt.md              # Planner — risk scoring + prioritized backlog
 │   ├── 01-explorer.prompt.md             # Explorer — semantic context, flow maps, role diffs
 │   ├── 02-test-generator.prompt.md       # Generator — strategy modes + heuristic engine
