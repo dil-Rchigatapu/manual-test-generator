@@ -1,6 +1,6 @@
 ---
-mode: agent
-description: Reads one or more page context files from page-contexts/ and generates thorough manual test cases written to the correct per-submodule CSV file under manual-tests/. Does not use a browser — all knowledge comes from stored context files.
+agent: agent
+description: Reads one or more page context files from page-contexts/ and generates thorough manual test cases written to the correct per-submodule CSV file under manual-tests/. Supports test strategy modes (Smoke, Regression, Security, Accessibility, Negative) and applies a heuristic engine to ensure complete coverage. Does not use a browser — all knowledge comes from stored context files.
 tools: []
 ---
 
@@ -30,6 +30,29 @@ The user will specify:
   - "Role-based access tests for Board Member 7"
   - "Full coverage for the entire page"
 - **Starting Key number** — e.g., "start from BEW-T7150" (so Keys don't collide with existing test cases)
+- **Mode** (optional) — one of: `Smoke`, `Regression`, `Security`, `Accessibility`, `Negative`, or `Full` (default if not specified)
+
+---
+
+## Test Strategy Modes
+
+Before generating any test cases, check which **mode** the user requested. Each mode restricts which coverage categories to generate:
+
+| Mode | What to Generate | MOD_Testing_Type | Priority |
+|---|---|---|---|
+| **Smoke** | Only the single most critical happy path per flow. Minimum steps to verify the core works. | `Smoke, E2E` | `High` |
+| **Regression** | All happy paths + all documented state transitions. Full E2E flows. | `Regression, E2E, Functional` | `High` + `Normal` |
+| **Security** | Role-based access tests only. Every role in the context's "Roles With Access" table. Both can-access and cannot-access variants. | `Security` | `High` |
+| **Accessibility** | UI/UX checks: empty states, dialog focus, keyboard hints, ARIA roles, missing labels (from context's Bugs Found section). | `UI/UX` | `Normal` |
+| **Negative** | All validation and error paths: empty required fields, invalid inputs, file upload errors, cancel flows, mid-flow abandonment. | `Functional` | `Normal` + `Low` |
+| **Full** | Everything: all modes combined. Default when no mode is specified. | (varies) | (varies) |
+
+**Mode affects:**
+- Which coverage categories to generate (Step 2)
+- Which automation plan to assign (`P0` for Smoke, `P1` for Regression, `Manual-Only` for Accessibility/Security)
+- The `MOD_Testing_Type` column value
+
+---
 
 ## CSV File Path Convention
 
@@ -111,6 +134,30 @@ Before writing a single test case, think through the coverage plan:
 **Edge Cases**
 - Boundary values (max length fields, file size limits)
 - State-dependent behaviors (e.g., "Publish" button only appears when status is Draft)
+
+---
+
+## Heuristic Engine — Mandatory Pattern Rules
+
+Before finalizing the coverage plan, apply this lookup table. For every matching pattern present in the context file, generate the listed test types. This removes reliance on LLM intuition alone.
+
+| Pattern Detected in Context | Required Test Types to Generate |
+|---|---|
+| **Form with required fields** | Empty submit; each required field individually empty; all fields valid (happy); max-length exceeded on text inputs; invalid format for typed fields (email, URL, number) |
+| **File upload input** | Valid file (happy path); file exceeds size limit; unsupported file type; empty/corrupted file; cancel upload before completion |
+| **Role-gated UI element** | Role CAN see/use it (positive); Role CANNOT see/use it (negative — verify hidden/disabled/redirect) |
+| **Multi-step wizard / sidesheet flow** | Complete flow to success; cancel at each step; validation error at each step; back-navigation between steps |
+| **Enabled/disabled state button** | Verify disabled state (and what blocks it); verify enabled state (and what enables it); click while enabled → success |
+| **State transition (A → B)** | Verify starting state A UI; trigger transition; verify state B UI; verify blocked states (cannot skip steps) |
+| **Delete / remove / destructive action** | Happy path with confirmation; cancel the confirmation dialog; verify item is removed (or not) after each path |
+| **Search / filter input** | Search with valid query (results shown); search with no results (empty state); search cleared (results reset); special characters in search |
+| **Pagination / list with many items** | Verify first page; navigate to next page; navigate to last page; verify item count / page count display |
+| **Toast / alert message** | Every documented toast: verify exact message text and triggering action |
+| **Empty state** | Trigger empty state; verify empty state UI (message text, any CTA button present) |
+| **Table with row actions** | Open row action menu; verify each action; verify action is absent for roles that cannot perform it |
+| **Modal that blocks navigation** | Unsaved changes → navigate away → verify warning prompt; confirm discard; cancel discard |
+
+**How to use:** Scan the context file's UI Elements and Flows sections. If any row in the left column matches something described, you MUST include all test types from the right column. Document which heuristics triggered in the coverage plan comment.
 
 ---
 
@@ -253,10 +300,44 @@ After writing all CSV rows, create or update the report file for the module:
   - Summary by Automation Plan (P0 / P1 / Manual-Only)
   - Summary by Testing Type
   - Coverage Gaps — role-based tests that cannot be generated until other roles are explored
+  - **Mode used** — which strategy mode was applied (Smoke / Regression / Security / Accessibility / Negative / Full)
+  - **Heuristics triggered** — which patterns from the Heuristic Engine were detected and acted on
 
-Also tell the user:
+---
+
+## Step 7 — Update Memory Files
+
+After writing the CSV and report:
+
+1. Update `memory/coverage.json` — update the module entry:
+   - Increment `tc_count` by the number of new test cases written
+   - Update `types_covered` to reflect new testing types added
+   - Set `last_generated_date` to today
+   - Add the CSV filename(s) to `csv_files` array
+
+2. Update `memory/test-history.json` — append a new entry:
+   ```json
+   {
+     "date": "YYYY-MM-DD",
+     "module": "<module>",
+     "submodule": "<submodule>",
+     "mode": "<mode used>",
+     "context_file": "<context file>",
+     "tcs_generated": X,
+     "key_range": "BEW-TXXXX to BEW-TXXXX",
+     "heuristics_triggered": ["Form with required fields", "Role-gated UI element", ...]
+   }
+   ```
+
+---
+
+## Step 8 — Suggest Next Steps
+
+Tell the user:
 - Total test cases generated: X
+- Mode used: `<mode>`
 - File written: `manual-tests/<module>/<submodule>/<submodule>-test-cases.csv`
 - Report updated: `manual-tests/<module>/<module>-test-cases-report.md`
+- Heuristics triggered: list which patterns were applied
 - Any areas where the context file lacked detail (so user knows to re-explore)
-- Suggested next context files to explore for related tests
+- **Recommended next action:** "Run Coverage Critic → `#agents/03-critic.prompt.md` using this context file and the CSV just created to validate coverage before committing."

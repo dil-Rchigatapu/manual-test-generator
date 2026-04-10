@@ -1,0 +1,103 @@
+{
+  "last_updated": "2026-04-10",
+  "high_risk_modules": ["login", "workrooms", "meeting-books-ai"],
+  "modules": {
+    "home": {
+      "risk_score": 8,
+      "risk_factors": {
+        "business_criticality": 3,
+        "defect_probability": 1,
+        "coverage_gap": 2,
+        "role_sensitivity": 2,
+        "recency_of_change": 1,
+        "known_bugs": 0
+      },
+      "known_bugs": [],
+      "fragile_flows": [],
+      "notes": "Explored SA only. 16 roles not yet tested."
+    },
+    "navigation": {
+      "risk_score": 6,
+      "risk_factors": {
+        "business_criticality": 2,
+        "defect_probability": 1,
+        "coverage_gap": 2,
+        "role_sensitivity": 2,
+        "recency_of_change": 1,
+        "known_bugs": 0
+      },
+      "known_bugs": [],
+      "fragile_flows": [],
+      "notes": "BM14 library restriction noted. Other roles untested."
+    },
+    "meeting-books-ai": {
+      "risk_score": 12,
+      "risk_factors": {
+        "business_criticality": 3,
+        "defect_probability": 3,
+        "coverage_gap": 2,
+        "role_sensitivity": 2,
+        "recency_of_change": 2,
+        "known_bugs": 1
+      },
+      "known_bugs": [
+        {
+          "id": "BUG-001",
+          "type": "Functional",
+          "element": "Build Progress Dialog",
+          "description": "First-time build skips progress bar — goes directly to success state. BEW-T7131 step 11 documented this behavior.",
+          "severity": "Medium",
+          "found_on": "2026-04-08",
+          "status": "Open — behavioral deviation, not a crash. Documented in BEW-T7131."
+        }
+      ],
+      "fragile_flows": [
+        "Rebuild Book Only — progress bar may skip on first build",
+        "Publish Smart Summary — depends on book visibility state which can be changed externally"
+      ],
+      "notes": "SA only. Roles not tested. Unpublish flow (BEW-T7133), Regenerate flow (BEW-T7134), and Rebuild+Generate flow (BEW-T7135) not yet created."
+    },
+    "login": {
+      "risk_score": 15,
+      "risk_factors": {
+        "business_criticality": 3,
+        "defect_probability": 2,
+        "coverage_gap": 3,
+        "role_sensitivity": 3,
+        "recency_of_change": 1,
+        "known_bugs": 0
+      },
+      "known_bugs": [],
+      "fragile_flows": [],
+      "notes": "CRITICAL — not explored. Core entry point for all tests."
+    },
+    "workrooms": {
+      "risk_score": 14,
+      "risk_factors": {
+        "business_criticality": 3,
+        "defect_probability": 3,
+        "coverage_gap": 3,
+        "role_sensitivity": 3,
+        "recency_of_change": 2,
+        "known_bugs": 0
+      },
+      "known_bugs": [],
+      "fragile_flows": [],
+      "notes": "CRITICAL — not explored. Complex permission model (WA vs BM vs SA)."
+    },
+    "library": {
+      "risk_score": 11,
+      "risk_factors": {
+        "business_criticality": 2,
+        "defect_probability": 2,
+        "coverage_gap": 3,
+        "role_sensitivity": 2,
+        "recency_of_change": 1,
+        "known_bugs": 0
+      },
+      "known_bugs": [],
+      "fragile_flows": [],
+      "notes": "Not explored. BM7 has no library access — key security test."
+    }
+  }
+}

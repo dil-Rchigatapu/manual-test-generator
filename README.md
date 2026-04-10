@@ -19,22 +19,55 @@ An AI-powered manual test generation system for the BoardEffect web application.
 
 ## How It Works
 
-The system uses **two specialized agents** that run in sequence:
+The system uses **five specialized agents** organized in a self-improving loop:
 
 ```
-YOU
- │
- ├─▶  01 — Explorer Agent          Uses Playwright MCP browser
- │         (01-explorer.prompt.md)  → Logs in, navigates, inspects DOM
- │                                  → Saves page-contexts/<page>.context.md
- │
- └─▶  02 — Test Generator Agent    No browser — reads context files only
-           (02-test-generator.prompt.md)
-                                    → Writes per-submodule CSVs
-                                    → Generates module report
+                    ┌──────────────────┐
+                    │  00 — Planner    │  ← Reads memory, scores risk,
+                    │  (No browser)    │    outputs prioritized backlog
+                    └────────┬─────────┘
+                             ↓
+                    ┌──────────────────┐
+                    │  01 — Explorer   │  ← Playwright MCP browser
+                    │  (Browser)       │    Explores page, detects flows,
+                    └────────┬─────────┘    maps state transitions,
+                             │              monitors for bugs
+                             ↓
+              ┌──────────────────────────┐
+              │  04 — Bug Detector       │  ← Optional: deep bug hunt
+              │  (Browser)               │    on any high-risk page
+              └──────────────┬───────────┘
+                             ↓
+                    ┌──────────────────┐
+                    │  02 — Generator  │  ← No browser, reads context
+                    │  (No browser)    │    Modes: Smoke/Regression/
+                    └────────┬─────────┘    Security/Accessibility/Negative
+                             ↓              Heuristic engine auto-applies
+                    ┌──────────────────┐
+                    │  03 — Critic     │  ← Reviews generated test cases
+                    │  (No browser)    │    Finds gaps, duplicates,
+                    └────────┬─────────┘    weak assertions, risk holes
+                             │
+                    ┌────────▼─────────┐    Generator loops back to
+                    │  02 — Generator  │  ← fill gaps found by Critic
+                    │  (refine loop)   │
+                    └────────┬─────────┘
+                             ↓
+                    ┌──────────────────┐
+                    │    memory/       │  ← Persistent state across all
+                    │  coverage.json   │    sessions: coverage metrics,
+                    │  risk-map.json   │    risk scores, bug history,
+                    │  test-history.json│   run history
+                    └──────────────────┘
 ```
 
-**Exploration and test generation are fully decoupled.** Explore once, generate tests many times. Re-explore only when the UI changes.
+**The loop:**
+1. **Planner** reads memory → tells you what has highest risk and lowest coverage → prioritizes next exploration
+2. **Explorer** visits the page → captures elements, flows, state machines, and bugs
+3. **Bug Detector** (optional) → deep-probes any high-risk page for defects
+4. **Generator** reads context → selects a strategy mode → applies heuristic rules → writes test cases
+5. **Critic** reviews CSVs → outputs a gap report → Generator loops back to fill gaps
+6. **Memory** is updated by every agent → next Planner run is smarter than the last
 
 ---
 
@@ -51,35 +84,62 @@ The `.vscode/mcp.json` file is already set up. VS Code will automatically regist
 
 To use **headed mode** (watch the browser as it explores), open `.vscode/mcp.json` and remove `"--headless"` from the args.
 
-### 2 — Explore a Page
+### 2 — Run the Planner (Start Here Each Sprint)
 
 1. Open VS Code Chat → switch to **Agent** mode
-2. Reference the Explorer agent: type `#agents/01-explorer.prompt.md`
+2. Reference the Planner agent: `#agents/00-planner.prompt.md`
 3. Give an instruction:
    ```
-   Explore the Home page as System Admin.
+   What should I work on next?
    ```
-   ```
-   Explore the Meeting Books > Create Book page. Check System Admin and Board Member 7.
-   ```
-4. The agent logs in, navigates, captures all UI details, and saves `page-contexts/<page>.context.md`
+4. The Planner reads `memory/`, `page-contexts/INDEX.md`, and `manual-tests/` → outputs a prioritized backlog with risk scores
 
-### 3 — Generate Test Cases
+### 3 — Explore a Page
 
-1. Open VS Code Chat → **Agent** mode
-2. Reference the Test Generator: `#agents/02-test-generator.prompt.md`
+1. Open VS Code Chat → agent mode
+2. Reference the Explorer agent: `#agents/01-explorer.prompt.md`
 3. Give an instruction:
    ```
-   Generate full coverage from page-contexts/home.context.md. Start from BEW-T7100.
+   Explore the Login page as System Admin and Board Member 7.
    ```
    ```
-   Generate only role-based access tests from page-contexts/home.context.md.
+   Explore the Meeting Books > Create Book flow. Check SA and WA roles.
+   ```
+4. The agent logs in, navigates, detects flows + state transitions, monitors for bugs, and saves `page-contexts/<page>.context.md`
+
+### 4 — (Optional) Run the Bug Detector on High-Risk Pages
+
+1. Reference the Bug Detector: `#agents/04-bug-detector.prompt.md`
+2. Give an instruction:
+   ```
+   Probe the GovernAI panel on book 30818 for bugs.
+   ```
+4. The agent outputs `bugs/<page>-bugs.md` and updates `memory/risk-map.json`
+
+### 5 — Generate Test Cases
+
+1. Reference the Generator: `#agents/02-test-generator.prompt.md`
+2. Give an instruction:
+   ```
+   Generate Smoke tests from page-contexts/login.context.md. Start from BEW-T7200.
    ```
    ```
-   Generate negative/validation tests for the Upload sidesheet in page-contexts/meeting-books-create.context.md.
+   Generate Security tests only from page-contexts/meeting-books-ai-feature.context.md.
    ```
-4. Test cases are written to `manual-tests/<module>/<submodule>/<submodule>-test-cases.csv`
-5. A report is generated/updated at `manual-tests/<module>/<module>-test-cases-report.md`
+   ```
+   Generate full Regression coverage from page-contexts/home.context.md. Start from BEW-T7150.
+   ```
+3. The agent applies the heuristic engine, selects the right coverage categories for the mode, and writes to the per-submodule CSV
+
+### 6 — Run the Coverage Critic
+
+1. Reference the Critic: `#agents/03-critic.prompt.md`
+2. Give an instruction:
+   ```
+   Review page-contexts/login.context.md and manual-tests/login/login-test-cases.csv
+   ```
+3. The Critic outputs a gap report to `manual-tests/<module>/<module>-coverage-critique-<date>.md`
+4. Loop back to Generator with: "Fill gaps from the critique report. Start from BEW-T7xxx."
 
 ---
 
@@ -143,16 +203,27 @@ manual-test-agent/
 ├── .vscode/
 │   └── mcp.json                      # Playwright MCP server config
 ├── agents/
-│   ├── 01-explorer.prompt.md         # Explorer Agent
-│   └── 02-test-generator.prompt.md   # Test Generator Agent
+│   ├── 00-planner.prompt.md          # Planner Agent — decides what to explore next
+│   ├── 01-explorer.prompt.md         # Explorer Agent — flow detection + state mapping
+│   ├── 02-test-generator.prompt.md   # Generator Agent — strategy modes + heuristic engine
+│   ├── 03-critic.prompt.md           # Critic Agent — coverage gap analysis
+│   └── 04-bug-detector.prompt.md     # Bug Detector Agent — active bug hunting
+├── memory/
+│   ├── README.md                     # Schema docs for all memory files
+│   ├── coverage.json                 # Per-module: explored?, tc count, types covered
+│   ├── risk-map.json                 # Risk scores, known bugs, fragile flows
+│   └── test-history.json            # Append-only log of all generation runs
 ├── page-contexts/
 │   ├── _SCHEMA.md                    # Schema template for all context files
 │   ├── INDEX.md                      # Index of all explored pages
-│   └── home.context.md               # Explored page contexts (one per page)
+│   └── *.context.md                  # Explored page contexts (one per page)
+├── bugs/                             # Bug reports from Bug Detector Agent
+│   └── <page>-bugs.md
 ├── screenshots/                      # DOM screenshots from exploration
 ├── manual-tests/                     # Generated test cases + reports
 │   └── <module>/
 │       ├── <module>-test-cases-report.md
+│       ├── <module>-coverage-critique-<date>.md
 │       └── <submodule>/
 │           └── <submodule>-test-cases.csv
 └── CONTEXT.md                        # Full onboarding doc — architecture, roles, CSV format
@@ -190,27 +261,34 @@ All credentials are defined in `.env.dev`. All users share a single shared passw
 
 ## Current Coverage
 
-| Module | Explored Roles | Test Cases | Status |
-|---|---|---|---|
-| Home | System Admin | 24 (BEW-T7100 – BEW-T7123) | ✅ Complete |
-| Login | — | — | ⏳ Not yet explored |
-| Workrooms | — | — | ⏳ Not yet explored |
-| Library | — | — | ⏳ Not yet explored |
-| Directory | — | — | ⏳ Not yet explored |
-| Messaging | — | — | ⏳ Not yet explored |
-| Minutes | — | — | ⏳ Not yet explored |
-| Approvals | — | — | ⏳ Not yet explored |
-| Site Settings | — | — | ⏳ Not yet explored |
+| Module | Explored Roles | Test Cases | Critique Run? | Status |
+|---|---|---|---|---|
+| Home | System Admin | 24 (BEW-T7100 – BEW-T7123) | ❌ | ✅ Tests generated |
+| Navigation (Side Nav) | System Admin | 5 (BEW-T10535 – T10541) | ❌ | ✅ Tests generated |
+| Meeting Books / AI Feature | System Admin | 2 (BEW-T7131 – T7132) | ❌ | ✅ Tests generated, live-verified |
+| Login | — | 0 | — | 🔴 Not explored (Critical) |
+| Workrooms | — | 0 | — | 🔴 Not explored (Critical) |
+| Library | — | 0 | — | 🟠 Not explored (High) |
+| Minutes | — | 0 | — | ⏳ Not yet explored |
+| Approvals | — | 0 | — | ⏳ Not yet explored |
+| Directory | — | 0 | — | ⏳ Not yet explored |
+| Messaging | — | 0 | — | ⏳ Not yet explored |
+| Site Settings | — | 0 | — | ⏳ Not yet explored |
 
 ---
 
 ## Key Design Decisions
 
 - **No automation code is ever generated.** Playwright MCP is used purely as a remote-controlled browser — not as a test framework.
-- **Exploration and generation are decoupled.** Explore once, generate tests independently, re-explore only on UI change.
+- **Exploration and generation are decoupled.** Explore once, generate tests independently, re-explore on UI change.
 - **Locators live in Test Data, not steps.** Steps remain human-readable; locators are available for automation AI without cluttering the manual step text.
 - **One CSV per submodule.** Each file is independently importable into Jira ATM without touching other modules.
 - **Reports co-locate with test cases.** The module report lives inside the module folder, not in a separate `reports/` directory.
+- **Generator → Critic → Generator loop.** Test cases are never committed without a Critic pass. The loop catches gaps the Generator missed on first run.
+- **Heuristic rules engine.** The Generator applies a deterministic lookup table based on element types detected in the context file. Coverage is not left to LLM intuition alone.
+- **Strategy modes.** A single context file can produce completely different test suites depending on focus: Smoke, Regression, Security, Accessibility, or Negative.
+- **Memory persists across sessions.** `coverage.json`, `risk-map.json`, and `test-history.json` give the Planner real data to reason about — not guesses.
+- **Bug Detector is a first-class agent.** Active bug hunting is separate from exploration and from test generation. Bugs found update the risk map, which in turn influences the Planner's next priorities.
 
 ---
 

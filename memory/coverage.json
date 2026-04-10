@@ -1,0 +1,166 @@
+{
+  "last_updated": "2026-04-10",
+  "modules": {
+    "home": {
+      "explored": true,
+      "roles_explored": ["MODERNIZED_SYSTEM_ADMIN_USEREMAIL"],
+      "last_explored_date": "2026-04-08",
+      "context_file": "page-contexts/home.context.md",
+      "flows_documented": 0,
+      "tc_count": 24,
+      "types_covered": ["Functional", "E2E", "UI/UX", "Security"],
+      "last_generated_date": "2026-04-08",
+      "csv_files": [
+        "manual-tests/home/authentication/authentication-test-cases.csv",
+        "manual-tests/home/navigation/navigation-test-cases.csv",
+        "manual-tests/home/approvals-drawer/approvals-drawer-test-cases.csv",
+        "manual-tests/home/top-system-bar/top-system-bar-test-cases.csv",
+        "manual-tests/home/search/search-test-cases.csv",
+        "manual-tests/home/footer/footer-test-cases.csv",
+        "manual-tests/home/widgets/welcome/welcome-test-cases.csv",
+        "manual-tests/home/widgets/meetings/meetings-test-cases.csv"
+      ],
+      "last_critique_date": null,
+      "critique_gaps_found": 0
+    },
+    "navigation": {
+      "explored": true,
+      "roles_explored": ["MODERNIZED_SYSTEM_ADMIN_USEREMAIL"],
+      "last_explored_date": "2026-04-08",
+      "context_file": "page-contexts/home-navigation.context.md",
+      "flows_documented": 0,
+      "tc_count": 5,
+      "types_covered": ["Functional", "E2E"],
+      "last_generated_date": "2026-04-08",
+      "csv_files": [
+        "manual-tests/navigation/side-navigation/BEW-T10535-back-to-platform.csv",
+        "manual-tests/navigation/side-navigation/BEW-T10536-home-navigation.csv",
+        "manual-tests/navigation/side-navigation/BEW-T10537-workrooms-expand-collapse.csv",
+        "manual-tests/navigation/side-navigation/BEW-T10538-library-navigation.csv",
+        "manual-tests/navigation/side-navigation/BEW-T10541-minutes-new-tab.csv"
+      ],
+      "last_critique_date": null,
+      "critique_gaps_found": 0
+    },
+    "meeting-books-ai": {
+      "explored": true,
+      "roles_explored": ["MODERNIZED_SYSTEM_ADMIN_USEREMAIL"],
+      "last_explored_date": "2026-04-08",
+      "context_file": "page-contexts/meeting-books-ai-feature.context.md",
+      "flows_documented": 4,
+      "tc_count": 2,
+      "types_covered": ["E2E", "Functional"],
+      "last_generated_date": "2026-04-08",
+      "csv_files": [
+        "manual-tests/meeting-books/ai-feature/BEW-T7131-rebuild-book-ai-outdated-state.csv",
+        "manual-tests/meeting-books/ai-feature/BEW-T7132-publish-smart-summary-smart-prep.csv"
+      ],
+      "last_critique_date": null,
+      "critique_gaps_found": 0
+    },
+    "login": {
+      "explored": false,
+      "roles_explored": [],
+      "last_explored_date": null,
+      "context_file": null,
+      "flows_documented": 0,
+      "tc_count": 0,
+      "types_covered": [],
+      "last_generated_date": null,
+      "csv_files": [],
+      "last_critique_date": null,
+      "critique_gaps_found": 0
+    },
+    "workrooms": {
+      "explored": false,
+      "roles_explored": [],
+      "last_explored_date": null,
+      "context_file": null,
+      "flows_documented": 0,
+      "tc_count": 0,
+      "types_covered": [],
+      "last_generated_date": null,
+      "csv_files": [],
+      "last_critique_date": null,
+      "critique_gaps_found": 0
+    },
+    "library": {
+      "explored": false,
+      "roles_explored": [],
+      "last_explored_date": null,
+      "context_file": null,
+      "flows_documented": 0,
+      "tc_count": 0,
+      "types_covered": [],
+      "last_generated_date": null,
+      "csv_files": [],
+      "last_critique_date": null,
+      "critique_gaps_found": 0
+    },
+    "minutes": {
+      "explored": false,
+      "roles_explored": [],
+      "last_explored_date": null,
+      "context_file": null,
+      "flows_documented": 0,
+      "tc_count": 0,
+      "types_covered": [],
+      "last_generated_date": null,
+      "csv_files": [],
+      "last_critique_date": null,
+      "critique_gaps_found": 0
+    },
+    "approvals": {
+      "explored": false,
+      "roles_explored": [],
+      "last_explored_date": null,
+      "context_file": null,
+      "flows_documented": 0,
+      "tc_count": 0,
+      "types_covered": [],
+      "last_generated_date": null,
+      "csv_files": [],
+      "last_critique_date": null,
+      "critique_gaps_found": 0
+    },
+    "directory": {
+      "explored": false,
+      "roles_explored": [],
+      "last_explored_date": null,
+      "context_file": null,
+      "flows_documented": 0,
+      "tc_count": 0,
+      "types_covered": [],
+      "last_generated_date": null,
+      "csv_files": [],
+      "last_critique_date": null,
+      "critique_gaps_found": 0
+    },
+    "messaging": {
+      "explored": false,
+      "roles_explored": [],
+      "last_explored_date": null,
+      "context_file": null,
+      "flows_documented": 0,
+      "tc_count": 0,
+      "types_covered": [],
+      "last_generated_date": null,
+      "csv_files": [],
+      "last_critique_date": null,
+      "critique_gaps_found": 0
+    },
+    "site-settings": {
+      "explored": false,
+      "roles_explored": [],
+      "last_explored_date": null,
+      "context_file": null,
+      "flows_documented": 0,
+      "tc_count": 0,
+      "types_covered": [],
+      "last_generated_date": null,
+      "csv_files": [],
+      "last_critique_date": null,
+      "critique_gaps_found": 0
+    }
+  }
+}

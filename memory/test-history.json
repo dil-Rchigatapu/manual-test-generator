@@ -1,0 +1,48 @@
+{
+  "runs": [
+    {
+      "date": "2026-04-08",
+      "module": "home",
+      "submodule": "authentication, navigation, approvals-drawer, top-system-bar, search, footer, widgets",
+      "mode": "Full",
+      "context_file": "page-contexts/home.context.md",
+      "tcs_generated": 24,
+      "key_range": "BEW-T7100 to BEW-T7123",
+      "heuristics_triggered": [],
+      "notes": "Initial generation — system not yet using heuristic engine."
+    },
+    {
+      "date": "2026-04-08",
+      "module": "navigation",
+      "submodule": "side-navigation",
+      "mode": "Full",
+      "context_file": "page-contexts/home-navigation.context.md",
+      "tcs_generated": 5,
+      "key_range": "BEW-T10535 to BEW-T10541",
+      "heuristics_triggered": [],
+      "notes": "Initial generation. BEW-T10539, T10540 intentionally skipped (out of scope)."
+    },
+    {
+      "date": "2026-04-08",
+      "module": "meeting-books-ai",
+      "submodule": "ai-feature",
+      "mode": "Full",
+      "context_file": "page-contexts/meeting-books-ai-feature.context.md",
+      "tcs_generated": 1,
+      "key_range": "BEW-T7131",
+      "heuristics_triggered": ["State transition (A → B)", "Enabled/disabled state button"],
+      "notes": "BEW-T7131: Rebuild Book Only + Outdated AI state. Live-verified. Bug found: first-time build skips progress bar."
+    },
+    {
+      "date": "2026-04-08",
+      "module": "meeting-books-ai",
+      "submodule": "ai-feature",
+      "mode": "Full",
+      "context_file": "page-contexts/meeting-books-ai-feature.context.md",
+      "tcs_generated": 1,
+      "key_range": "BEW-T7132",
+      "heuristics_triggered": ["State transition (A → B)", "Enabled/disabled state button", "Role-gated UI element"],
+      "notes": "BEW-T7132: Publish Smart Summary and Smart Prep with visibility gate. 23 steps. 100% live-verified."
+    }
+  ]
+}
